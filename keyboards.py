@@ -16,3 +16,12 @@ def kb_start():
     return kb_builder.as_markup(resize_keyboard = True)
 
 
+def kb_random():
+    kb_builder = ReplyKeyboardBuilder()
+
+    buttons: list[KeyboardButton] = [
+        KeyboardButton(text='Хочу ещё факт'),
+        KeyboardButton(text='Закончить')
+    ]
+    kb_builder.row(*buttons)
+    return kb_builder.as_markup(resize_keyboard=True)

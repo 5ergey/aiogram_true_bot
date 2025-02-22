@@ -1,17 +1,19 @@
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import default_state, State
 from aiogram.types import Message, ReplyKeyboardRemove
 from aiogram.filters import Command, CommandStart, StateFilter
 from lexicon.lexicon_ru import LEXICON_RU, PROMPTS_RU
-from keyboards import kb_start
+from keyboards import kb_start, kb_random
 from states import Chat
 from gpt import gpt_text
 
 user_router = Router()
 
-
+@user_router.message(F.text == 'Закончить')
 @user_router.message(CommandStart())
-async def process_start_command(message: Message):
+async def process_start_command(message: Message, state: FSMContext):
+    await state.clear()
     await message.answer(
         text=LEXICON_RU['/start'].replace('name', message.from_user.full_name),
         reply_markup=kb_start()
@@ -21,7 +23,8 @@ async def process_start_command(message: Message):
 
 
 @user_router.message(Command('help'))
-async def process_help_command(message: Message):
+async def process_help_command(message: Message, state: FSMContext):
+    await state.clear()
     await message.answer(
         text=LEXICON_RU['/help'].replace('name', message.from_user.full_name),
         reply_markup=kb_start()
@@ -45,16 +48,16 @@ async def process_random_command(message: Message, state: FSMContext):
         text=LEXICON_RU['/random'].replace('name', message.from_user.full_name),
     )
     response = await gpt_text(request='Напиши интересный факт', content=PROMPTS_RU['/random'])
-    await message.answer(response)
+    await message.answer(response, reply_markup=kb_random())
 
 
-@user_router.message(Chat.chat)
+@user_router.message(StateFilter(Chat.chat))
 async def process_chat(message: Message):
     response = await gpt_text(message.text, content="Ты персональный помощник, дающий подробные ответы")
     await message.answer(response)
 
-
-@user_router.message(Chat.random)
+@user_router.message(F.text == 'Хочу ещё факт')
+@user_router.message(StateFilter(Chat.random))
 async def process_random(message: Message):
     response = await gpt_text(request=message.text, content=PROMPTS_RU['/random'])
-    await message.answer(response)
+    await message.answer(response, reply_markup=kb_random())
