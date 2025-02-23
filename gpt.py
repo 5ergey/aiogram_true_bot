@@ -35,6 +35,7 @@ async def gpt_text(system_content,
         ] + messages_list,
         model=model
     )
+    print(completion)
     return completion.choices[0].message.content
 
 

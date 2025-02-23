@@ -103,22 +103,22 @@ async def process_dialog(message: Message, state:FSMContext):
         "role": "user",
         "content": message.text
     }
-
-
-    response = await gpt_text(system_content=STARS[content['name']],
-                              user_request=message.text,
-                              messages_list=content['dialog'])
-    await message.answer(response)
     content['dialog'].append(user_request)
     await state.update_data(dialog=content['dialog'])
+    response = await gpt_text(system_content=STARS[content['name']],
+                              user_request='',
+                              messages_list=content['dialog'])
+    await message.answer(response)
+
     star_response = {
         "role": "assistant",
         "content": response
 
     }
     content['dialog'].append(star_response)
-    print(content['dialog'])
     await state.update_data(dialog=content['dialog'])
+    print(content['dialog'])
+
 
 
 
