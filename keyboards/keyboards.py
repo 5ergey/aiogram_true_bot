@@ -1,5 +1,6 @@
-from aiogram.types import KeyboardButton
-from aiogram.utils.keyboard import ReplyKeyboardBuilder
+from aiogram.types import KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
+
 
 def kb_start():
     kb_builder = ReplyKeyboardBuilder()
@@ -25,3 +26,19 @@ def kb_random():
     ]
     kb_builder.row(*buttons)
     return kb_builder.as_markup(resize_keyboard=True)
+
+
+def kb_talk(width: int, **kwargs: dict):
+    kb_builder = InlineKeyboardBuilder()
+
+    buttons: list[InlineKeyboardButton] = []
+    for button, text in kwargs.items():
+        buttons.append(InlineKeyboardButton(
+            text=text,
+            callback_data=button
+        ))
+
+
+    kb_builder.row(*buttons, width=width)
+    return kb_builder.as_markup(resize_keyboard=True)
+
