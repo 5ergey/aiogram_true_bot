@@ -73,7 +73,7 @@ def kb_quiz_game():
     kb_builder = InlineKeyboardBuilder()
 
     buttons: list[InlineKeyboardButton] = [
-        InlineKeyboardButton(text='Задать новый вопрос на эту же тему', callback_data='quiz_more'),
+        InlineKeyboardButton(text='Задать новый вопрос\n на эту же тему', callback_data='quiz_more'),
         InlineKeyboardButton(text='Сменить тему', callback_data='quiz'),
         InlineKeyboardButton(text='Закончить квиз', callback_data='start'),
     ]
