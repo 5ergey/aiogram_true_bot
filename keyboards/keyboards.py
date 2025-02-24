@@ -28,7 +28,7 @@ def kb_random():
     return kb_builder.as_markup(resize_keyboard=True)
 
 
-def kb_talk(width: int, **kwargs: dict):
+def kb_talk(width: int, **kwargs):
     kb_builder = InlineKeyboardBuilder()
 
     buttons: list[InlineKeyboardButton] = []
@@ -40,5 +40,16 @@ def kb_talk(width: int, **kwargs: dict):
 
 
     kb_builder.row(*buttons, width=width)
+    return kb_builder.as_markup(resize_keyboard=True)
+
+
+def kb_dialog_with_star():
+    kb_builder = ReplyKeyboardBuilder()
+
+    buttons: list[KeyboardButton] = [
+        KeyboardButton(text='Закончить')
+    ]
+
+    kb_builder.row(*buttons)
     return kb_builder.as_markup(resize_keyboard=True)
 

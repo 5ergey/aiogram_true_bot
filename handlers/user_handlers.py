@@ -4,7 +4,7 @@ from aiogram.types import Message, ReplyKeyboardRemove, FSInputFile, CallbackQue
 from aiogram.filters import Command, CommandStart, StateFilter
 from aiogram.fsm.storage.memory import MemoryStorage
 from lexicon.lexicon_ru import LEXICON_RU, PROMPTS_RU, TALK_WITH_STAR_RU,STARS
-from keyboards.keyboards import kb_start, kb_random, kb_talk
+from keyboards.keyboards import kb_start, kb_random, kb_talk, kb_dialog_with_star
 from states import Chat
 from gpt import gpt_text
 from os import path
@@ -108,7 +108,7 @@ async def process_dialog(message: Message, state:FSMContext):
     response = await gpt_text(system_content=STARS[content['name']],
                               user_request='',
                               messages_list=content['dialog'])
-    await message.answer(response)
+    await message.answer(response, reply_markup=kb_dialog_with_star())
 
     star_response = {
         "role": "assistant",
@@ -117,7 +117,7 @@ async def process_dialog(message: Message, state:FSMContext):
     }
     content['dialog'].append(star_response)
     await state.update_data(dialog=content['dialog'])
-    print(content['dialog'])
+
 
 
 

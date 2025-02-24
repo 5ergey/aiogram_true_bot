@@ -14,7 +14,6 @@ client = AsyncOpenAI(
 
 async def gpt_text(system_content,
                    user_request,
-                   ai_response='',
                    messages_list: list[dict[str, str]] = [],
                    model='gpt-3.5-turbo'
                    ):
@@ -28,10 +27,6 @@ async def gpt_text(system_content,
                 "role": "user",
                 "content": user_request
             },
-            {
-                "role": "assistant",
-                "content": ai_response
-            }
         ] + messages_list,
         model=model
     )

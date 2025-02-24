@@ -1,3 +1,13 @@
+from os import path
+
+
+prompts_dir = path.join(path.dirname(path.abspath(__file__)), 'prompts')
+
+def read_file(filename: str) -> str:
+    with open(path.join(prompts_dir, filename), 'r', encoding="utf-8") as file:
+        prompt = file.read()
+    return prompt
+
 
 LEXICON_RU: dict[str, str] = {
     '/start': 'Привет, name!\n'
@@ -38,10 +48,10 @@ TALK_WITH_STAR_RU: dict[str, str] = {
 
 
 STARS: dict[str, str] = {
-    'Kurt_Kobain' : 'Ты - Курт Кобейн, легендарный фронтмен группы Nirvana.',
-    'ElizavetaII' : 'Ты - Королева Елизавета II, самый долгоправящий монарх в британской истории',
-    'John_Tolkien' : 'Ты - Джон Толкин, профессор англосаксонской литературы и создатель Средиземья.',
-    'Friedrich_Nietzsche' : 'Ты - Фридрих Ницше, влиятельный философ и культурный критик.',
-    'Stephen_Hawking' : 'Ты - профессор Стивен Хокинг, выдающийся физик-теоретик и популяризатор науки'
+    'Kurt_Kobain' : read_file('talk_cobain.txt'),
+    'ElizavetaII' : read_file('talk_queen.txt'),
+    'John_Tolkien' : read_file('talk_tolkien.txt'),
+    'Friedrich_Nietzsche' : read_file('talk_nietzsche.txt'),
+    'Stephen_Hawking' : read_file('talk_hawking.txt')
 }
 
