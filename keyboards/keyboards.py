@@ -53,3 +53,29 @@ def kb_dialog_with_star():
     kb_builder.row(*buttons)
     return kb_builder.as_markup(resize_keyboard=True)
 
+def kb_quiz_themes(width: int):
+    kb_builder = InlineKeyboardBuilder()
+
+    buttons: list[InlineKeyboardButton] = [
+        InlineKeyboardButton(text='Программирование', callback_data='quiz_prog'),
+        InlineKeyboardButton(text='Математика', callback_data='quiz_math'),
+        InlineKeyboardButton(text='Биология', callback_data='quiz_biology'),
+        InlineKeyboardButton(text='Назад', callback_data='start'),
+    ]
+
+    kb_builder.row(*buttons, width=width)
+    return kb_builder.as_markup(resize_keyboard=True)
+
+
+
+def kb_quiz_game():
+    kb_builder = InlineKeyboardBuilder()
+
+    buttons: list[InlineKeyboardButton] = [
+        InlineKeyboardButton(text='Задать новый вопрос на эту же тему', callback_data='quiz_more'),
+        InlineKeyboardButton(text='Сменить тему', callback_data='quiz'),
+        InlineKeyboardButton(text='Закончить квиз', callback_data='start'),
+    ]
+    kb_builder.row(*buttons)
+    kb_builder.adjust(2, 1)
+    return kb_builder.as_markup(resize_keyboard=True)

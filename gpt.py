@@ -14,6 +14,7 @@ client = AsyncOpenAI(
 
 async def gpt_text(system_content,
                    user_request,
+                   assistant_content = '',
                    messages_list: list[dict[str, str]] = [],
                    model='gpt-3.5-turbo'
                    ):
@@ -24,13 +25,16 @@ async def gpt_text(system_content,
                 "content": system_content
             },
             {
+                "role": "assistant",
+                "content": assistant_content
+            },
+            {
                 "role": "user",
                 "content": user_request
             },
         ] + messages_list,
         model=model
     )
-    print(completion)
     return completion.choices[0].message.content
 
 

@@ -1,10 +1,11 @@
+
 from aiogram import Router, F
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import default_state
 from aiogram.types import Message, ReplyKeyboardRemove, FSInputFile, CallbackQuery
 from aiogram.filters import Command, CommandStart, StateFilter
-from aiogram.fsm.storage.memory import MemoryStorage
-from lexicon.lexicon_ru import LEXICON_RU, PROMPTS_RU, TALK_WITH_STAR_RU,STARS
-from keyboards.keyboards import kb_start, kb_random, kb_talk, kb_dialog_with_star
+from lexicon.lexicon_ru import LEXICON_RU, PROMPTS_RU, TALK_WITH_STAR_RU,STARS, QUIZ
+from keyboards.keyboards import kb_start, kb_random, kb_talk, kb_dialog_with_star, kb_quiz_themes, kb_quiz_game
 from states import Chat
 from gpt import gpt_text
 from os import path
@@ -13,18 +14,32 @@ user_router = Router()
 images_dir = path.join(path.dirname(path.abspath(__file__)), 'images')
 
 
+#------------------------------------------------
+#Базовые обработчики /start и /help
+
+#Обработка команды /start
+@user_router.callback_query(F.data == 'start', ~StateFilter(default_state))
 @user_router.message(F.text == 'Закончить')
 @user_router.message(CommandStart())
-async def process_start_command(message: Message, state: FSMContext):
+async def process_start_command(message: Message | CallbackQuery, state: FSMContext):
     await state.clear()
-    await message.answer(
-        text=LEXICON_RU['/start'].replace('name', message.from_user.full_name),
-        reply_markup=kb_start()
-    )
+    if isinstance(message, Message):
+        await message.answer(
+            text=LEXICON_RU['/start'].replace('name', message.from_user.full_name),
+            reply_markup=kb_start()
+        )
+    else:
+        await message.bot.send_message(
+            chat_id=message.from_user.id,
+            text=LEXICON_RU['/start'].replace('name', message.from_user.full_name),
+            reply_markup=kb_start()
+        )
 
 
 
 
+
+#Обработка команды help
 @user_router.message(Command('help'))
 async def process_help_command(message: Message, state: FSMContext):
     await state.clear()
@@ -33,7 +48,10 @@ async def process_help_command(message: Message, state: FSMContext):
         reply_markup=kb_start()
     )
 
+#------------------------------------------------
+# Обработчики чата с gpt
 
+#Обработка команды /gpt, установка состояния chat
 @user_router.message(F.text == 'Диалог с ИИ')
 @user_router.message(Command('gpt'))
 async def process_gpt_command(message: Message, state: FSMContext):
@@ -45,6 +63,16 @@ async def process_gpt_command(message: Message, state: FSMContext):
         reply_markup=ReplyKeyboardRemove()
     )
 
+#Обработка сообщений из состояния chat
+@user_router.message(StateFilter(Chat.chat))
+async def process_chat(message: Message):
+    response = await gpt_text(system_content="Ты персональный помощник, дающий подробные ответы", user_request=message.text)
+    await message.answer(response)
+
+#------------------------------------------------
+#Обработчики выдачи случайного факта
+
+#Обработка команды /random, установка состояния random
 @user_router.message(F.text == 'Узнать случайный факт')
 @user_router.message(Command('random'))
 async def process_random_command(message: Message, state: FSMContext):
@@ -58,7 +86,17 @@ async def process_random_command(message: Message, state: FSMContext):
     await message.answer(response, reply_markup=kb_random())
 
 
+#Обработка сообщений из состояния random
+@user_router.message(F.text == 'Хочу ещё факт')
+@user_router.message(StateFilter(Chat.random))
+async def process_random(message: Message):
+    response = await gpt_text(system_content=PROMPTS_RU['/random'], user_request=message.text)
+    await message.answer(response, reply_markup=kb_random())
 
+#------------------------------------------------
+#Обработчики диалога со звездой
+
+#Обработка команды /talk, установка состояния talk
 @user_router.message(F.text == 'Диалог со звездой')
 @user_router.message(Command('talk'))
 async def process_talk_command(message: Message, state: FSMContext):
@@ -71,18 +109,7 @@ async def process_talk_command(message: Message, state: FSMContext):
     )
 
 
-@user_router.message(StateFilter(Chat.chat))
-async def process_chat(message: Message):
-    response = await gpt_text(system_content="Ты персональный помощник, дающий подробные ответы", user_request=message.text)
-    await message.answer(response)
-
-@user_router.message(F.text == 'Хочу ещё факт')
-@user_router.message(StateFilter(Chat.random))
-async def process_random(message: Message):
-    response = await gpt_text(system_content=PROMPTS_RU['/random'], user_request=message.text)
-    await message.answer(response, reply_markup=kb_random())
-
-
+#Обработка сообщений из состояния talk, установка состояния dialog_with_star при выборе звезды
 @user_router.callback_query(StateFilter(Chat.talk))
 async def process_talk(callback: CallbackQuery, state:FSMContext):
     photo_file = FSInputFile(path=path.join(images_dir, f'{callback.data}.jpg'))
@@ -95,7 +122,7 @@ async def process_talk(callback: CallbackQuery, state:FSMContext):
     await state.set_state(Chat.dialog_with_star)
 
 
-
+#Обработка сообщений из состояния dialog_with_start
 @user_router.message(StateFilter(Chat.dialog_with_star))
 async def process_dialog(message: Message, state:FSMContext):
     content = await state.get_data()
@@ -117,6 +144,80 @@ async def process_dialog(message: Message, state:FSMContext):
     }
     content['dialog'].append(star_response)
     await state.update_data(dialog=content['dialog'])
+
+#------------------------------------------------
+#Обработчики игры в квиз
+
+#Обработка команды /quiz, установка состояния quiz
+@user_router.callback_query(F.data == 'quiz', StateFilter(Chat.user_answer))
+@user_router.message(F.text == 'Поиграть в квиз')
+@user_router.message(Command('quiz'))
+async def process_quiz_command(message: Message | CallbackQuery, state: FSMContext):
+    if isinstance(message, Message):
+        await state.update_data(score=0)
+        photo_file = FSInputFile(path=path.join(images_dir, 'quiz.jpg'))
+        await message.answer_photo(photo=photo_file)
+        await message.answer(
+            text=LEXICON_RU['/quiz'].replace('name', message.from_user.full_name),
+            reply_markup=kb_quiz_themes(1)
+            )
+
+    else:
+        await message.bot.send_message(
+            chat_id=message.from_user.id,
+            text=LEXICON_RU['/quiz'].replace('name', message.from_user.full_name),
+            reply_markup=kb_quiz_themes(1)
+        )
+    await state.set_state(Chat.quiz)
+
+
+
+#Обработка колбеков quiz и передача их в чат gpt, установка состояния user_answer
+
+@user_router.callback_query(StateFilter(Chat.quiz))
+async def process_quiz(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    response = await gpt_text(system_content=QUIZ['system'], user_request=callback.data)
+    await callback.bot.send_message(chat_id=callback.from_user.id, text=response)
+    await state.update_data(question=response, score=data['score'], current_topic=callback.data)
+    await state.set_state(Chat.user_answer)
+
+@user_router.callback_query(F.data == 'quiz_more', StateFilter(Chat.user_answer))
+async def process_quiz_more(callback: CallbackQuery, state: FSMContext):
+    data = await state.get_data()
+    topic = data["current_topic"]
+    response = await gpt_text(system_content=QUIZ['system'], user_request=topic)
+    await callback.bot.send_message(chat_id=callback.from_user.id, text=response)
+    await state.update_data(question=response, score=data['score'], current_topic=topic)
+    await state.set_state(Chat.user_answer)
+
+
+#Проверка корректности ответа пользователя
+@user_router.message(StateFilter(Chat.user_answer))
+async def process_quiz_check_answer(message: Message , state: FSMContext):
+    data = await state.get_data()
+    result = await gpt_text(system_content=QUIZ['system'],
+                              assistant_content=data['question'],
+                              user_request=message.text)
+    if result == 'Правильно!':
+        data['score'] += 1
+        await state.update_data(score=data['score'])
+    await message.answer(result + f'\nВаш текущий счет: {data['score']}', reply_markup=kb_quiz_game())
+    print(f'data_assitant = {data['question']}')
+    print(f'Пользователь - {message.text}')
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

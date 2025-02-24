@@ -13,7 +13,7 @@ async def start_bot():
     load_dotenv()
     bot = Bot(token=os.getenv('TG_TOKEN'))
     dp = Dispatcher()
-    #Регистрируем роутеры
+    #Регистрируем роутер
     dp.include_router(user_handlers.user_router)
     await dp.start_polling(bot)
 
