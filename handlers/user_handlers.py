@@ -205,7 +205,7 @@ async def process_quiz_check_answer(message: Message, state: FSMContext):
     if result == 'Правильно!':
         data['score'] += 1
         await state.update_data(score=data['score'])
-    await message.answer(result + f'\nВаш текущий счет: {data['score']}', reply_markup=kb_quiz_game())
+    await message.answer(result + '\nВаш текущий счет: ' + data['score'], reply_markup=kb_quiz_game())
     print(f'data_assitant = {data['question']}')
     print(f'Пользователь - {message.text}')
 
