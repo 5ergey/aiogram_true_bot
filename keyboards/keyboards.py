@@ -1,4 +1,4 @@
-from aiogram.types import KeyboardButton, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import KeyboardButton, InlineKeyboardButton
 from aiogram.utils.keyboard import ReplyKeyboardBuilder, InlineKeyboardBuilder
 
 
@@ -10,6 +10,7 @@ def kb_start():
         KeyboardButton(text='Диалог с ИИ'),
         KeyboardButton(text='Диалог со звездой'),
         KeyboardButton(text='Поиграть в квиз'),
+        KeyboardButton(text='Перевести текст'),
 
     ]
     kb_builder.row(*buttons)
@@ -78,4 +79,27 @@ def kb_quiz_game():
     ]
     kb_builder.row(*buttons)
     kb_builder.adjust(2, 1)
+    return kb_builder.as_markup(resize_keyboard=True)
+
+
+def kb_translate(*args):
+    kb_builder = ReplyKeyboardBuilder()
+
+    buttons: list[KeyboardButton] = []
+    for button in args:
+        buttons.append(KeyboardButton(text=button))
+
+    kb_builder.row(*buttons)
+    kb_builder.adjust(2, 2, 2)
+    return kb_builder.as_markup(resize_keyboard = True)
+
+
+def kb_translate_menu():
+    kb_builder = ReplyKeyboardBuilder()
+
+    buttons: list[KeyboardButton] = [
+        KeyboardButton(text='Сменить язык'),
+        KeyboardButton(text='Закончить')
+    ]
+    kb_builder.row(*buttons)
     return kb_builder.as_markup(resize_keyboard=True)

@@ -8,4 +8,5 @@ class Chat(StatesGroup):
     dialog_with_star = State()
     quiz = State()
     user_answer = State()
-    next_step_in_quiz = State()
+    get_language_to_translate = State()
+    translate = State()
