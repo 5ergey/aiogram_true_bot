@@ -5,7 +5,7 @@ from aiogram.types import Message, ReplyKeyboardRemove, FSInputFile, CallbackQue
 from aiogram.filters import Command, CommandStart, StateFilter
 from lexicon.lexicon_ru import LEXICON_RU, PROMPTS_RU, TALK_WITH_STAR_RU, STARS, QUIZ, TRANSLATE, LANGUAGES
 from keyboards.keyboards import kb_start, kb_random, kb_talk, kb_dialog_with_star, kb_quiz_themes, kb_quiz_game, \
-    kb_translate, kb_translate_menu
+    kb_translate, kb_translate_menu, kb_gpt_dialog
 from states import Chat
 from gpt import gpt_text
 from os import path
@@ -67,7 +67,7 @@ async def process_gpt_command(message: Message, state: FSMContext):
 async def process_chat(message: Message):
     response = await gpt_text(system_content="Ты персональный помощник, дающий подробные ответы",
                               user_request=message.text)
-    await message.answer(response)
+    await message.answer(response, reply_markup=kb_gpt_dialog())
 
 
 # ------------------------------------------------
