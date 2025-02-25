@@ -15,7 +15,7 @@ images_dir = path.join(path.dirname(path.abspath(__file__)), 'images')
 
 
 # ------------------------------------------------
-# Базовые обработчики /start и /help
+# Обработчики команд
 
 # Обработка команды /start
 @user_router.callback_query(F.data == 'start', ~StateFilter(default_state))
@@ -45,10 +45,6 @@ async def process_help_command(message: Message, state: FSMContext):
         reply_markup=kb_start()
     )
 
-
-# ------------------------------------------------
-# Обработчики чата с gpt
-
 # Обработка команды /gpt, установка состояния chat
 @user_router.message(F.text == 'Диалог с ИИ')
 @user_router.message(Command('gpt'))
@@ -60,18 +56,6 @@ async def process_gpt_command(message: Message, state: FSMContext):
         text=LEXICON_RU['/gpt'].replace('name', message.from_user.full_name),
         reply_markup=ReplyKeyboardRemove()
     )
-
-
-# Обработка сообщений из состояния chat
-@user_router.message(StateFilter(Chat.chat))
-async def process_chat(message: Message):
-    response = await gpt_text(system_content="Ты персональный помощник, дающий подробные ответы",
-                              user_request=message.text)
-    await message.answer(response, reply_markup=kb_gpt_dialog())
-
-
-# ------------------------------------------------
-# Обработчики выдачи случайного факта
 
 # Обработка команды /random, установка состояния random
 @user_router.message(F.text == 'Узнать случайный факт')
@@ -86,18 +70,6 @@ async def process_random_command(message: Message, state: FSMContext):
     response = await gpt_text(system_content=PROMPTS_RU['/random'], user_request='Напиши интересный факт')
     await message.answer(response, reply_markup=kb_random())
 
-
-# Обработка сообщений из состояния random
-@user_router.message(F.text == 'Хочу ещё факт')
-@user_router.message(StateFilter(Chat.random))
-async def process_random(message: Message):
-    response = await gpt_text(system_content=PROMPTS_RU['/random'], user_request=message.text)
-    await message.answer(response, reply_markup=kb_random())
-
-
-# ------------------------------------------------
-# Обработчики диалога со звездой
-
 # Обработка команды /talk, установка состояния talk
 @user_router.message(F.text == 'Диалог со звездой')
 @user_router.message(Command('talk'))
@@ -110,6 +82,66 @@ async def process_talk_command(message: Message, state: FSMContext):
         reply_markup=kb_talk(1, **TALK_WITH_STAR_RU)
     )
 
+
+# Обработка команды /quiz, установка состояния quiz
+@user_router.callback_query(F.data == 'quiz', StateFilter(Chat.user_answer))
+@user_router.message(F.text == 'Поиграть в квиз')
+@user_router.message(Command('quiz'))
+async def process_quiz_command(message: Message | CallbackQuery, state: FSMContext):
+    if isinstance(message, Message):
+        await state.update_data(score=0)
+        photo_file = FSInputFile(path=path.join(images_dir, 'quiz.jpg'))
+        await message.answer_photo(photo=photo_file)
+        await message.answer(
+            text=LEXICON_RU['/quiz'].replace('name', message.from_user.full_name),
+            reply_markup=kb_quiz_themes(1)
+        )
+
+    else:
+        await message.bot.send_message(
+            chat_id=message.from_user.id,
+            text=LEXICON_RU['/quiz'].replace('name', message.from_user.full_name),
+            reply_markup=kb_quiz_themes(1)
+        )
+    await state.set_state(Chat.quiz)
+
+
+# Обработка команды /translate
+@user_router.message(F.text == "Сменить язык")
+@user_router.message(Command('translate'))
+@user_router.message(F.text == "Перевести текст")
+async def process_translate_command(message: Message, state: FSMContext):
+    await state.set_state(Chat.get_language_to_translate)
+    await message.answer(
+        text=LEXICON_RU['/translate'].replace('name', message.from_user.full_name),
+        reply_markup=kb_translate(*LANGUAGES)
+    )
+
+
+# ------------------------------------------------
+# Обработчики чата с gpt
+
+# Обработка сообщений из состояния chat
+@user_router.message(StateFilter(Chat.chat))
+async def process_chat(message: Message):
+    response = await gpt_text(system_content="Ты персональный помощник, дающий подробные ответы",
+                              user_request=message.text)
+    await message.answer(response, reply_markup=kb_gpt_dialog())
+
+
+# ------------------------------------------------
+# Обработчики выдачи случайного факта
+
+# Обработка сообщений из состояния random
+@user_router.message(F.text == 'Хочу ещё факт')
+@user_router.message(StateFilter(Chat.random))
+async def process_random(message: Message):
+    response = await gpt_text(system_content=PROMPTS_RU['/random'], user_request=message.text)
+    await message.answer(response, reply_markup=kb_random())
+
+
+# ------------------------------------------------
+# Обработчики диалога со звездой
 
 # Обработка сообщений из состояния talk, установка состояния dialog_with_star при выборе звезды
 @user_router.callback_query(StateFilter(Chat.talk))
@@ -151,29 +183,6 @@ async def process_dialog(message: Message, state: FSMContext):
 # ------------------------------------------------
 # Обработчики игры в квиз
 
-# Обработка команды /quiz, установка состояния quiz
-@user_router.callback_query(F.data == 'quiz', StateFilter(Chat.user_answer))
-@user_router.message(F.text == 'Поиграть в квиз')
-@user_router.message(Command('quiz'))
-async def process_quiz_command(message: Message | CallbackQuery, state: FSMContext):
-    if isinstance(message, Message):
-        await state.update_data(score=0)
-        photo_file = FSInputFile(path=path.join(images_dir, 'quiz.jpg'))
-        await message.answer_photo(photo=photo_file)
-        await message.answer(
-            text=LEXICON_RU['/quiz'].replace('name', message.from_user.full_name),
-            reply_markup=kb_quiz_themes(1)
-        )
-
-    else:
-        await message.bot.send_message(
-            chat_id=message.from_user.id,
-            text=LEXICON_RU['/quiz'].replace('name', message.from_user.full_name),
-            reply_markup=kb_quiz_themes(1)
-        )
-    await state.set_state(Chat.quiz)
-
-
 # Обработка колбека quiz и передача их в чат gpt, установка состояния user_answer
 @user_router.callback_query(StateFilter(Chat.quiz))
 async def process_quiz(callback: CallbackQuery, state: FSMContext):
@@ -210,17 +219,7 @@ async def process_quiz_check_answer(message: Message, state: FSMContext):
 
 
 # ------------------------------------------------
-# Обработчики переводчика
-@user_router.message(F.text == "Сменить язык")
-@user_router.message(Command('translate'))
-@user_router.message(F.text == "Перевести текст")
-async def process_translate_command(message: Message, state: FSMContext):
-    await state.set_state(Chat.get_language_to_translate)
-    await message.answer(
-        text=LEXICON_RU['/translate'].replace('name', message.from_user.full_name),
-        reply_markup=kb_translate(*LANGUAGES)
-    )
-
+#Обработчики переводчика
 
 @user_router.message(StateFilter(Chat.get_language_to_translate))
 async def process_get_language(message: Message, state: FSMContext):
